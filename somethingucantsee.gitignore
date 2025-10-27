@@ -1,0 +1,52 @@
+# 环境变量和配置
+.env
+.env.*
+config.json
+secrets.yaml
+
+# 日志和输出
+*.txt
+*.log
+outputs/
+logs/
+runs/
+
+# 模型和数据文件
+*.safetensors
+*.ckpt
+*.pth
+*.bin
+*.h5
+*.pkl
+*.faiss
+*.npy
+data/
+models/
+checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# 临时文件
+*.tmp
+*.bak
+~*
