@@ -1,0 +1,4 @@
+[
+  {"instruction": "介绍一下Python", "output": "Python是一种解释型编程语言..."},
+  {"instruction": "2+2等于几？", "output": "等于4"}
+]
