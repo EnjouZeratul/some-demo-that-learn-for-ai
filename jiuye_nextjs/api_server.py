@@ -395,4 +395,5 @@ if __name__ == "__main__":
     print("-" * 50)
     
     # 使用reload=True在开发时支持热重载
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("api_server:app", host="0.0.0.0", port=8000, reload=True)
+
