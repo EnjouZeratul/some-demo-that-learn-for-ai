@@ -387,13 +387,14 @@ async def get_stats():
     }
 
 if __name__ == "__main__":
-    print("🚀 启动AI Agent API服务器...")
-    print(f"💰 成本追踪: {'✅ 已开启' if TRACK_COSTS else '❌ 已关闭'}")
-    print(f"🌐 API地址: http://localhost:8000")
-    print(f"📊 健康检查: http://localhost:8000/health")
-    print(f"📥 下载日志: http://localhost:8000/download-logs")
+    print("启动AI Agent API服务器...")
+    print(f"成本追踪: {'已开启' if TRACK_COSTS else '已关闭'}")
+    print(f"API地址: http://localhost:8000")
+    print(f"健康检查: http://localhost:8000/health")
+    print(f"下载日志: http://localhost:8000/download-logs")
     print("-" * 50)
     
     # 使用reload=True在开发时支持热重载
     uvicorn.run("api_server:app", host="0.0.0.0", port=8000, reload=True)
+
 
