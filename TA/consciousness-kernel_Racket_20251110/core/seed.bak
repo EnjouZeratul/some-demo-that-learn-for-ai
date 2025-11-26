@@ -1,0 +1,131 @@
+#lang racket
+(require racket/serialize racket/file json)
+
+;; HAL - 利用完整目录结构的自演化系统
+
+;; === 目录初始化 ===
+(define-values (core-dir rules-dir logs-dir)
+  (values "." "../rules" "../logs"))
+
+(make-directory* rules-dir)
+(make-directory* logs-dir)
+
+;; === 状态 ===
+(define state (hash))
+(define active-rules (hash))
+(define rule-history '())
+
+;; === 规则加载器 ===
+(define (load-rules)
+  (for ([file (directory-list rules-dir)])
+    (when (regexp-match? #rx"\\.rule$" file)
+      (define path (build-path rules-dir file))
+      (define rule-data (call-with-input-file path read))
+      (set! active-rules (hash-set active-rules 
+                                  (path->string file)
+                                  rule-data)))))
+
+;; === 核心处理 ===
+(define (process input)
+  ;; 日志
+  (log-event 'input input)
+  
+  ;; 应用所有活跃规则
+  (define results
+    (for/list ([(name rule) active-rules])
+      (apply-rule rule input state)))
+  
+  ;; 更新状态
+  (for ([result results])
+    (when (hash? result)
+      (for ([(k v) result])
+        (set! state (hash-set state k v)))
+
+  
+  ;; 检查是否需要生成新规则
+  (check-for-emergence input)
+  
+  ;; 返回
+  (hash-ref state 'response input))
+
+;; === 规则应用 ===
+(define (apply-rule rule input current-state)
+  (match rule
+    [(list 'if condition 'then action)
+     (if (eval-condition condition input current-state)
+         (eval-action action input current-state)
+         (hash))]
+    [_ (hash)]))
+
+;; === 涌现检测 ===
+(define (check-for-emergence input)
+  (define pattern-count (hash-ref state 'patterns (hash)))
+  
+  ;; 更新模式计数
+  (define last-input (hash-ref state 'last #f))
+  (when last-input
+    (define pattern (list last-input '-> input))
+    (set! pattern-count 
+          (hash-update pattern-count pattern add1 0))
+    (set! state (hash-set state 'patterns pattern-count))
+    
+    ;; 高频模式 -> 新规则
+    (for ([(p count) pattern-count])
+      (when (> count 5)
+        (generate-rule p count)))))
+
+;; === 规则生成 ===
+(define (generate-rule pattern frequency)
+  (match pattern
+    [(list from '-> to)
+     (define rule-name (format "auto_~a_to_~a.rule" from to))
+     (define rule-path (build-path rules-dir rule-name))
+     
+     (unless (file-exists? rule-path)
+       (define new-rule 
+         `(if (equal? input ',from)
+              then (hash 'response ',to 'confidence ,frequency)))
+       
+       (call-with-output-file rule-path
+         (lambda (out) (write new-rule out)))
+       
+       (log-event 'rule-generated rule-name)
+       (set! active-rules (hash-set active-rules rule-name new-rule)))]))
+
+;; === 日志系统 ===
+(define (log-event type data)
+  (define log-entry
+    (hash 'time (current-seconds)
+          'type type
+          'data data))
+  
+  (define log-file (build-path logs-dir "events.json"))
+  (define existing
+    (if (file-exists? log-file)
+        (call-with-input-file log-file read-json)
+        '()))
+  
+  (call-with-output-file log-file #:exists 'replace
+    (lambda (out)
+      (write-json (cons log-entry existing) out))))
+
+;; === 简单条件/动作评估 ===
+(define (eval-condition condition input state)
+  (match condition
+    [`(equal? input ,val) (equal? input val)]
+    [`(contains? ,key) (hash-has-key? state key)]
+    [else #f]))
+
+(define (eval-action action input state)
+  (match action
+    [`(hash ,pairs ...) (apply hash pairs)]
+    [else (hash)]))
+
+;; === 启动 ===
+(load-rules)
+(displayln "HAL系统就绪")
+(displayln "目录结构:")
+(displayln "  ./core/ - 当前运行位置")
+(displayln "  ../rules/ - 规则文件 (*.rule)")  
+(displayln "  ../logs/ - 系统日志")
+(displayln "\n(process '输入) - 开始")
